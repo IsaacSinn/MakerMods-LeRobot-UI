@@ -14,5 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from .auto_calibration import COMM_ERR
 from .feetech import DriveMode, FeetechMotorsBus, OperatingMode, TorqueMode
 from .tables import *

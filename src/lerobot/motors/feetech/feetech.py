@@ -16,10 +16,12 @@ import logging
 from copy import deepcopy
 from enum import Enum
 from pprint import pformat
+import time
 
 from lerobot.motors.encoding_utils import decode_sign_magnitude, encode_sign_magnitude
 
 from ..motors_bus import Motor, MotorCalibration, MotorsBus, NameOrID, Value, get_address
+from .auto_calibration import FeetechCalibrationMixin
 from .tables import (
     FIRMWARE_MAJOR_VERSION,
     FIRMWARE_MINOR_VERSION,
@@ -96,7 +98,7 @@ def patch_setPacketTimeout(self, packet_length):  # noqa: N802
     self.packet_timeout = (self.tx_time_per_byte * packet_length) + (self.tx_time_per_byte * 3.0) + 50
 
 
-class FeetechMotorsBus(MotorsBus):
+class FeetechMotorsBus(FeetechCalibrationMixin, MotorsBus):
     """
     The FeetechMotorsBus class allows to efficiently read and write to the attached motors. It relies on the
     python feetech sdk to communicate with the motors, which is itself based on the dynamixel sdk.
@@ -271,6 +273,12 @@ class FeetechMotorsBus(MotorsBus):
         return calibration
 
     def write_calibration(self, calibration_dict: dict[str, MotorCalibration], cache: bool = True) -> None:
+        # 写入校准前保证 Lock=0，否则 EEPROM 不可写，限位与 Homing_Offset 无法持久化
+        for motor in calibration_dict:
+            lock = self.read("Lock", motor, normalize=False)
+            if int(lock) != 0:
+                self.write("Lock", motor, 0)
+                time.sleep(0.05)
         for motor, calibration in calibration_dict.items():
             if self.protocol_version == 0:
                 self.write("Homing_Offset", motor, calibration.homing_offset)
@@ -315,7 +323,12 @@ class FeetechMotorsBus(MotorsBus):
             encoding_table = self.model_encoding_table.get(model)
             if encoding_table and data_name in encoding_table:
                 sign_bit = encoding_table[data_name]
-                ids_values[id_] = encode_sign_magnitude(ids_values[id_], sign_bit)
+                val = ids_values[id_]
+                # Homing_Offset 等 12 位符号-数值仅能表示 [-2047, 2047]，超出则夹紧避免编码异常
+                if data_name == "Homing_Offset":
+                    max_mag = (1 << sign_bit) - 1
+                    val = max(-max_mag, min(max_mag, val))
+                ids_values[id_] = encode_sign_magnitude(val, sign_bit)
 
         return ids_values
 

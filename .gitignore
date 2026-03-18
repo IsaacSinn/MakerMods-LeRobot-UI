@@ -185,3 +185,4 @@ src/lerobot/webui/frontend/out/
 src/lerobot/webui/frontend/node_modules/
 src/lerobot/webui/frontend/images/
 *.pen
+.cursor/rules/stservo-reference.mdc
