@@ -102,6 +102,11 @@ class SmolVLAConfig(PreTrainedConfig):
     min_period: float = 4e-3  # sensitivity range for the timestep used in sine-cosine positional encoding
     max_period: float = 4.0
 
+    # Qualia compatibility fields
+    use_peft: bool = False
+    pretrained_path: str | None = None
+    rtc_config: dict | None = None
+
     def __post_init__(self):
         super().__post_init__()
 
