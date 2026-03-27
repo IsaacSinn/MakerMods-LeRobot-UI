@@ -1,4 +1,4 @@
-# SmolVLA_FOR_XLeRobot
+# LeRobot for MakerMods UI
 
 <div align="center">
 
@@ -17,7 +17,7 @@
 
 ---
 
-This repository is forked from [huggingface/lerobot](https://github.com/huggingface/lerobot) and based on commit [`f55c6e8`](https://github.com/huggingface/lerobot/commit/f55c6e8) (Dataset v3).
+This repository is forked from [huggingface/lerobot](https://github.com/huggingface/lerobot) and based on [Kahowang/lerobot](https://github.com/Kahowang/lerobot), commit [`f55c6e8`](https://github.com/huggingface/lerobot/commit/f55c6e8) (Dataset v3).
 
 ## System Demonstrations
 
@@ -282,7 +282,32 @@ Should show `CUDA: True` and `CUDA version: 12.6`.
 
 > **Reference Documentation:** For detailed setup instructions and troubleshooting, please refer to the [Seeed Studio LeRobot Wiki](https://wiki.seeedstudio.com/cn/lerobot_so100m_new/).
 
-### 1. Data Collection with Three Cameras
+### 1. Auto-Calibration
+
+Auto-calibration automatically measures the full range of motion for each Feetech servo, eliminating the need to manually move joints to their limits. Run it once per arm before data collection.
+
+```bash
+conda activate lerobot
+
+# Auto-calibrate a single follower arm
+python -m lerobot.scripts.lerobot_measure_feetech_ranges \
+    --port /dev/ttyACM0 \
+    --id my_follower
+```
+
+The script will:
+1. Connect to the arm on the specified serial port.
+2. Move each servo through its full range of motion.
+3. Record the min/max positions for every joint.
+4. Save the calibration file to `~/.cache/huggingface/lerobot/calibration/robots/so101_follower/<id>.json`.
+
+Repeat for each arm (left follower, right follower, left leader, right leader), changing `--port` and `--id` accordingly.
+
+**Notes:**
+- Make sure the arm is in a clear workspace with nothing blocking its movement before running.
+- You can also run auto-calibration through the [MakerMods LeRobot UI](https://github.com/Maker-Mods/MakerMods-LeRobot-UI) — navigate to the Calibration step and select **Auto Calibration** mode.
+
+### 2. Data Collection with Three Cameras
 
 Record demonstrations using the bimanual SO-101 robot with three camera views (`front_cam`, `hand_cam`, `side_cam`):
 
@@ -314,7 +339,7 @@ lerobot-record \
 - We recommend recording at least 50 episodes for optimal SmolVLA performance
 - Use `--dataset.single_task` to describe your task in natural language
 
-### 2. Train SmolVLA with Three Cameras
+### 3. Train SmolVLA with Three Cameras
 
 Fine-tune the SmolVLA model on your collected dataset:
 
@@ -337,7 +362,7 @@ lerobot-train \
 - The model will automatically use all three camera views from your dataset
 - Fine-tune `--steps` based on validation performance
 
-### 3. Inference with SmolVLA
+### 4. Inference with SmolVLA
 
 Run inference using your trained SmolVLA model with three cameras:
 
@@ -367,7 +392,7 @@ lerobot-record \
 - The evaluation results will be saved to `${HF_USER}/eval_your_dataset_name`
 - Adjust `--dataset.num_episodes` for your evaluation needs
 
-### 4. Replaying Collected Data
+### 5. Replaying Collected Data
 
 To replay and visualize collected episodes:
 
@@ -430,10 +455,11 @@ For detailed setup and usage instructions, visit the VR controller repository:
 
 ---
 
-## Original Repository
+## Original Repositories
 
 For full documentation, tutorials, and more information, please visit:
 - Original Repository: [huggingface/lerobot](https://github.com/huggingface/lerobot)
+- Kahowang's Fork: [Kahowang/lerobot](https://github.com/Kahowang/lerobot)
 - Documentation: [https://huggingface.co/docs/lerobot](https://huggingface.co/docs/lerobot)
 - Community: [https://huggingface.co/lerobot](https://huggingface.co/lerobot)
 
@@ -443,15 +469,15 @@ If you use this work, please cite:
 
 ### This Project
 
-**Contributors:** [kahowang (王家浩)](https://github.com/kahowang) • [bubblepan (潘春波)](https://github.com/IIMFINE) • [Makermods](https://www.makermods.ai/)
+**Contributors:** [IsaacSinn](https://github.com/IsaacSinn) • [yuuubaaa](https://github.com/yuuubaaa) • [Lakesenberg](https://github.com/Lakesenberg) • [MakerMods](https://www.makermods.ai/) • [kahowang (王家浩)](https://github.com/kahowang) • [bubblepan (潘春波)](https://github.com/IIMFINE)
 
 ```bibtex
 @misc{wang2025smolvla_xlerobot,
-    author = {Wang, Jiahao and Pan, Chunbo and Makermods},
-    title = {SmolVLA for XLeRobot: Bimanual SO-101 Robot Control with Vision-Language-Action Model},
-    howpublished = "\url{https://github.com/kahowang/lerobot}",
+    author = {Sin, Isaac and Biao, Liuyu and Qi, Liu and Makermods and Wang, Jiahao and Pan, Chunbo},
+    title = {LeRobot for MakerMods UI: Bimanual SO-101 Robot Control with Vision-Language-Action Model},
+    howpublished = "\url{https://github.com/Maker-Mods/lerobot-MakerMods}",
     year = {2025},
-    note = {3rd Place Winner at 2025 Seeed × NVIDIA × LeRobot Hackathon}
+    note = {Based on Kahowang/lerobot, 3rd Place Winner at 2025 Seeed × NVIDIA × LeRobot Hackathon}
 }
 ```
 
