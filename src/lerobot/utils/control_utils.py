@@ -18,6 +18,8 @@
 
 
 import logging
+import sys
+import threading
 import traceback
 from contextlib import nullcontext
 from copy import copy
@@ -155,6 +157,19 @@ def apply_stdin_command(events: dict, line: str) -> bool:
     return True
 
 
+def _stdin_command_reader(events: dict, stream) -> None:
+    """Read recording control commands line-by-line from `stream` until EOF.
+
+    Runs in a daemon thread so the UI backend (which launches this process
+    as a subprocess) can drive recording flow by writing lines to stdin.
+    """
+    try:
+        for line in stream:
+            apply_stdin_command(events, line)
+    except Exception as e:  # stream closed / decode error — stop quietly
+        logging.debug(f"stdin command reader stopped: {e}")
+
+
 def init_keyboard_listener():
     """
     Initializes a non-blocking keyboard listener for real-time user interaction.
@@ -175,6 +190,19 @@ def init_keyboard_listener():
     events["exit_early"] = False
     events["rerecord_episode"] = False
     events["stop_recording"] = False
+
+    # Allow the UI backend (which launches this process as a subprocess) to
+    # drive recording flow by writing commands to stdin. Only enabled when
+    # stdin is a pipe (not an interactive terminal), so terminal usage keeps
+    # relying on the pynput key listener below. Runs even in headless mode.
+    try:
+        stdin_is_pipe = sys.stdin is not None and not sys.stdin.isatty()
+    except (ValueError, OSError):
+        stdin_is_pipe = False
+    if stdin_is_pipe:
+        threading.Thread(
+            target=_stdin_command_reader, args=(events, sys.stdin), daemon=True
+        ).start()
 
     if is_headless():
         logging.warning(
