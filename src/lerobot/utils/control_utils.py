@@ -130,6 +130,31 @@ def predict_action(
     return action
 
 
+def apply_stdin_command(events: dict, line: str) -> bool:
+    """Apply a single stdin control command to the recording events dict.
+
+    Recognised commands (one per line): "rerecord", "save", "stop". These
+    mirror the left/right-arrow and escape keyboard shortcuts so the UI
+    backend can drive recording flow by writing lines to this process's
+    stdin. Unknown commands and blank lines are ignored.
+
+    Returns:
+        True if the line matched a known command, False otherwise.
+    """
+    command = line.strip()
+    if command == "rerecord":
+        events["rerecord_episode"] = True
+        events["exit_early"] = True
+    elif command == "save":
+        events["exit_early"] = True
+    elif command == "stop":
+        events["stop_recording"] = True
+        events["exit_early"] = True
+    else:
+        return False
+    return True
+
+
 def init_keyboard_listener():
     """
     Initializes a non-blocking keyboard listener for real-time user interaction.
